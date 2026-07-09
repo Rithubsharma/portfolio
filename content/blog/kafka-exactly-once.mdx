@@ -1,0 +1,100 @@
+---
+title: "Kafka Exactly-Once Semantics: The Complete Guide"
+excerpt: "Breaking down Kafka's transaction protocol, idempotent producers, and exactly-once delivery — from theory to practical Java implementation with the real edge cases nobody talks about."
+date: "2024-11-05"
+tags: ["kafka", "distributed-systems", "java", "backend"]
+published: true
+---
+
+"Exactly-once delivery" is one of those phrases that sounds simple until you try to implement it. At DP World, I spent weeks getting this right for our IMS-WMS integration. Here's everything I learned.
+
+## The Three Delivery Guarantees
+
+- **At-most-once**: Messages may be lost, never duplicated
+- **At-least-once**: Messages never lost, may be duplicated  
+- **Exactly-once**: Messages delivered exactly once, no duplicates, no loss
+
+Kafka supports all three. Most teams use at-least-once and deal with duplicates in their consumers. Exactly-once is harder but necessary when you're updating inventory counts.
+
+## Why At-Least-Once Fails for Inventory
+
+Consider a consumer that updates inventory on every message:
+
+```java
+consumer.poll(Duration.ofMillis(100)).forEach(record -> {
+    inventory.decrement(record.value().getItemId(), record.value().getQuantity());
+    consumer.commitSync(); // Commit offset after processing
+});
+```
+
+If the service crashes after `decrement()` but before `commitSync()`, the message is reprocessed. The inventory decrements twice. A product that should be at quantity 5 is now at 3. This causes order fulfillment failures.
+
+## Idempotent Producers
+
+The first piece: make the **producer** idempotent. This prevents duplicate messages from network retries.
+
+```java
+Properties props = new Properties();
+props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+props.put(ProducerConfig.ACKS_CONFIG, "all");
+props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
+```
+
+With idempotency enabled, Kafka assigns each producer a PID and tracks sequence numbers. Duplicate sends (due to retries) are deduplicated by the broker.
+
+## Kafka Transactions
+
+The second piece: transactions. They let you atomically write to multiple partitions and commit offsets together.
+
+```java
+producer.initTransactions();
+
+try {
+    producer.beginTransaction();
+    
+    // Process the message
+    InventoryUpdate update = processRecord(record);
+    
+    // Write to output topic
+    producer.send(new ProducerRecord<>("inventory-updates", update.getKey(), update));
+    
+    // Commit the input offset within the same transaction
+    Map<TopicPartition, OffsetAndMetadata> offsets = Map.of(
+        new TopicPartition(record.topic(), record.partition()),
+        new OffsetAndMetadata(record.offset() + 1)
+    );
+    producer.sendOffsetsToTransaction(offsets, consumerGroupMetadata);
+    
+    producer.commitTransaction();
+} catch (Exception e) {
+    producer.abortTransaction();
+    throw e;
+}
+```
+
+The key insight: `sendOffsetsToTransaction` commits the consumer offset **atomically with the producer send**. Either both happen or neither does.
+
+## Consumer Configuration
+
+The consumer must be configured to only see committed messages:
+
+```java
+props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+```
+
+Without this, your consumer will read messages from aborted transactions.
+
+## The Edge Cases Nobody Talks About
+
+**1. Zombie fencing**  
+Old producer instances from crashed pods can still hold a transactional producer ID. Kafka handles this with the `transactional.id` + epoch mechanism — a new producer with the same `transactional.id` bumps the epoch, and the broker rejects writes from old epochs.
+
+**2. Performance overhead**  
+Transactions add latency. Each `commitTransaction()` requires a round-trip to the transaction coordinator. Batch your messages per transaction to amortize the cost.
+
+**3. Exactly-once to external systems**  
+Kafka transactions only work within Kafka. If your consumer writes to MySQL, you need a separate idempotency mechanism (usually a deduplication key in the database).
+
+## Results
+
+After implementing this for the IMS-WMS integration, inventory discrepancy incidents dropped to zero. The latency overhead was ~15ms per batch — acceptable for our use case.

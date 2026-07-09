@@ -1,0 +1,98 @@
+---
+title: "Live Profiling Go Services in Production Without Restarts"
+excerpt: "A deep dive into Go's pprof tooling, how we built a zero-downtime profiling platform on Kubernetes, and the surprising things we found in production flame graphs."
+date: "2025-01-28"
+tags: ["go", "performance", "kubernetes", "observability"]
+published: true
+---
+
+Diagnosing a performance regression in production usually means one of two things: adding more logging (slow, requires a redeploy) or staring at Prometheus graphs hoping a metric tells you something useful.
+
+At GoDaddy, we built a third option: **live pprof profiling without service restarts**.
+
+## How pprof Works
+
+Go's standard library includes an HTTP endpoint that serves profiling data at runtime. If you import `net/http/pprof`, your service exposes endpoints like:
+
+```
+/debug/pprof/profile     — 30-second CPU profile
+/debug/pprof/heap        — current heap snapshot
+/debug/pprof/goroutine   — all goroutine stacks
+/debug/pprof/trace       — execution trace
+```
+
+By default this is only available in development. Our platform makes it safely available in production.
+
+## The Architecture
+
+```
+┌────────────────────┐     pprof HTTP      ┌─────────────────┐
+│  Target Service    │◄────────────────────│  Sidecar Agent  │
+│  (Go Microservice) │                     │  (ObservErd)    │
+└────────────────────┘                     └────────┬────────┘
+                                                    │
+                                         Profiles + Metrics
+                                                    │
+                                           ┌────────▼────────┐
+                                           │  Analysis API   │
+                                           │  (Claude + rules)│
+                                           └─────────────────┘
+```
+
+The sidecar runs as a Kubernetes pod alongside the target service. It has network access to the target's pprof endpoint but that endpoint is **not exposed externally**.
+
+## Collecting Profiles Safely
+
+```go
+func (a *Agent) collectCPUProfile(ctx context.Context, duration time.Duration) (*profile.Profile, error) {
+    url := fmt.Sprintf("http://localhost:%d/debug/pprof/profile?seconds=%d",
+        a.targetPort, int(duration.Seconds()))
+    
+    resp, err := a.httpClient.Get(url)
+    if err != nil {
+        return nil, fmt.Errorf("collecting cpu profile: %w", err)
+    }
+    defer resp.Body.Close()
+    
+    return profile.Parse(resp.Body)
+}
+```
+
+The CPU profile samples the call stack every 100ms by default. After 30 seconds, you get a proto-encoded flame graph showing exactly where CPU time is spent.
+
+## What We Found in Production
+
+The most common issues we've caught:
+
+**1. Unexpected JSON marshaling hotspots**
+Services spending 15-20% of CPU on `encoding/json` due to marshaling large structs on every request. Fix: pre-marshal static fields, use `json.RawMessage` for passthrough data.
+
+**2. Mutex contention on shared caches**
+A global `sync.Mutex` on a LRU cache was serializing all requests. Fix: shard the cache by key hash.
+
+**3. goroutine leaks**
+Services accumulating goroutines over time due to HTTP clients with no timeout. Each stuck goroutine holds a stack — at 10k goroutines that's 80MB+ of memory.
+
+## The AI Layer
+
+Raw flame graphs require expertise to interpret. We pipe the profile data into Claude Sonnet 4 with the service's source code context:
+
+```go
+prompt := fmt.Sprintf(`
+You are analyzing a Go CPU profile for service %s.
+
+Top hot functions:
+%s
+
+Source context for top 3 functions:
+%s
+
+Identify the root cause and provide specific, actionable recommendations.
+`, serviceName, hotFunctions, sourceContext)
+```
+
+The output is specific and actionable — not "optimize your database queries" but "the N+1 query pattern in UserService.GetPermissions is executing 47 database queries per request."
+
+## Results
+
+After rolling this out across 20+ Go microservices, the mean time to diagnose a performance regression dropped from several hours to under 15 minutes. The flame graphs don't lie.

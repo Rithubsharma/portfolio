@@ -1,0 +1,122 @@
+---
+title: "Building Reliable Distributed Workflows with the Saga Pattern"
+excerpt: "How I built a saga orchestration framework at GoDaddy that handles 10,000+ daily provisioning requests with automatic failure compensation — and what I learned about distributed transaction design."
+date: "2025-03-15"
+tags: ["distributed-systems", "go", "aws", "backend"]
+published: true
+---
+
+When I joined GoDaddy's security platform team, we had a problem: provisioning a single customer's security product required coordinating across 5 different services. Each step could fail independently. When they did, we had no automatic recovery — engineers were manually cleaning up inconsistent state.
+
+The answer was the **Saga pattern**. Here's how I designed it and what I learned.
+
+## The Problem with Distributed Transactions
+
+Traditional ACID transactions don't span service boundaries. In a microservices architecture, you can't hold a lock across an HTTP call. If step 3 of 5 fails, you need a way to undo steps 1 and 2 — without a transaction coordinator sitting across all services.
+
+```go
+// The naive approach — no compensation, no retry
+func ProvisionSecurity(ctx context.Context, req ProvisionRequest) error {
+    if err := createDNSRecord(ctx, req); err != nil {
+        return err // Steps already completed are now orphaned
+    }
+    if err := installCertificate(ctx, req); err != nil {
+        return err // DNS record is live but cert doesn't exist
+    }
+    if err := activateFirewall(ctx, req); err != nil {
+        return err // Inconsistent state
+    }
+    return nil
+}
+```
+
+This fails silently. DNS records exist without certificates. Firewalls activate with no DNS. Customers end up in half-provisioned states.
+
+## The Saga Solution
+
+A saga breaks a distributed workflow into a sequence of local transactions, each with a corresponding **compensating transaction** that undoes the effect if needed.
+
+```go
+type SagaStep struct {
+    Name        string
+    Execute     func(ctx context.Context, state *SagaState) error
+    Compensate  func(ctx context.Context, state *SagaState) error
+}
+
+var provisioningSteps = []SagaStep{
+    {
+        Name: "create_dns_record",
+        Execute: createDNSRecord,
+        Compensate: deleteDNSRecord,
+    },
+    {
+        Name: "install_certificate",
+        Execute: installCertificate,
+        Compensate: revokeCertificate,
+    },
+    {
+        Name: "activate_firewall",
+        Execute: activateFirewall,
+        Compensate: deactivateFirewall,
+    },
+}
+```
+
+The orchestrator runs steps forward, and on failure, rolls back completed steps in reverse order.
+
+## Key Design Decisions
+
+### 1. Idempotent Everything
+
+Every `Execute` and `Compensate` function must be idempotent. SQS delivers messages at least once — you will execute the same step twice in production. Design for it.
+
+```go
+func createDNSRecord(ctx context.Context, state *SagaState) error {
+    // Idempotent: check if record exists before creating
+    existing, err := dnsClient.GetRecord(ctx, state.Domain)
+    if err == nil && existing != nil {
+        return nil // Already exists, nothing to do
+    }
+    return dnsClient.CreateRecord(ctx, state.Domain, state.IP)
+}
+```
+
+### 2. Durable Saga State
+
+Saga state lives in PostgreSQL. Every step transition is persisted before the next step executes. If the orchestrator crashes, it can resume from the last committed step.
+
+```sql
+CREATE TABLE saga_executions (
+    id          UUID PRIMARY KEY,
+    customer_id UUID NOT NULL,
+    status      TEXT NOT NULL, -- pending, running, completed, compensating, failed
+    current_step INT,
+    state       JSONB,
+    created_at  TIMESTAMP,
+    updated_at  TIMESTAMP
+);
+```
+
+### 3. SQS for Reliable Step Delivery
+
+Each saga step is dispatched as an SQS message. This gives us at-least-once delivery, automatic retries, and dead-letter queues for failed steps — without complex retry logic in the orchestrator.
+
+```go
+func (o *SagaOrchestrator) advanceStep(ctx context.Context, sagaID string) error {
+    saga, err := o.db.LoadSaga(ctx, sagaID)
+    if err != nil {
+        return err
+    }
+    
+    nextStep := saga.CurrentStep + 1
+    msg := StepMessage{SagaID: sagaID, StepIndex: nextStep}
+    
+    return o.sqs.SendMessage(ctx, o.queueURL, msg)
+}
+```
+
+## Results
+
+The framework now handles **10,000+ daily provisioning requests** with **500 concurrent saga executions**. Provisioning latency dropped by 60% because steps run concurrently where possible, and manual cleanup tickets dropped to zero.
+
+The biggest lesson: **design compensating transactions before you design the forward path**. If you can't describe how to undo a step cleanly, your architecture has a problem that saga orchestration won't fix.
