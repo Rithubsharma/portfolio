@@ -20,7 +20,7 @@ export function RecentPosts() {
             align="left"
           />
           <Button variant="ghost" asChild className="hidden sm:flex">
-            <Link href="/blog">
+            <Link href="/writing">
               All posts <ArrowRight size={16} />
             </Link>
           </Button>
@@ -30,8 +30,8 @@ export function RecentPosts() {
           {recent.map((post) => (
             <StaggerItem key={post.slug}>
               <Link
-                href={`/blog/${post.slug}`}
-                className="group flex flex-col gap-3 rounded-xl border border-border bg-surface p-6 transition-all duration-200 hover:border-border-strong hover:shadow-md sm:flex-row sm:items-start sm:justify-between"
+                href={`/writing/${post.slug}`}
+                className="group flex flex-col gap-3 rounded-2xl border border-border bg-surface p-6 transition-colors duration-150 hover:border-border-strong sm:flex-row sm:items-start sm:justify-between"
               >
                 <div className="flex-1 space-y-2">
                   {/* Tags */}
@@ -73,7 +73,7 @@ export function RecentPosts() {
 
         <div className="mt-8 flex justify-center sm:hidden">
           <Button variant="outline" asChild>
-            <Link href="/blog">
+            <Link href="/writing">
               View all posts <ArrowRight size={16} />
             </Link>
           </Button>

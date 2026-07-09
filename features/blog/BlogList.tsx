@@ -121,7 +121,7 @@ export function BlogList({ posts }: BlogListProps) {
             {filtered.map((post) => (
               <StaggerItem key={post.slug}>
                 <Link
-                  href={`/blog/${post.slug}`}
+                  href={`/writing/${post.slug}`}
                   className="group block rounded-xl border border-border bg-surface p-6 transition-all duration-200 hover:border-border-strong hover:shadow-md"
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start">

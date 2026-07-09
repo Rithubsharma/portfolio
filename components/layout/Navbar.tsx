@@ -77,15 +77,6 @@ export function Navbar() {
           {/* Right side */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link
-              href="/contact"
-              className={cn(
-                "hidden items-center rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white transition-all hover:bg-accent-hover sm:flex",
-                pathname === "/contact" && "opacity-70"
-              )}
-            >
-              Hire me
-            </Link>
 
             {/* Mobile menu button */}
             <button
@@ -133,14 +124,6 @@ export function Navbar() {
                   </motion.li>
                 ))}
               </ul>
-              <div className="mt-4 border-t border-border pt-4">
-                <Link
-                  href="/contact"
-                  className="flex w-full items-center justify-center rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
-                >
-                  Hire me
-                </Link>
-              </div>
             </nav>
           </motion.div>
         )}

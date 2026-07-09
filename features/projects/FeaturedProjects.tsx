@@ -1,42 +1,40 @@
 import Link from "next/link";
-import { ArrowUpRight, ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { StaggerContainer, StaggerItem } from "@/components/shared/StaggerContainer";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TechBadgeList } from "@/components/shared/TechBadge";
 import { featuredProjects } from "@/lib/data";
 
 export function FeaturedProjects() {
   return (
-    <section className="section bg-background-secondary">
+    <section className="section">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-16 flex items-end justify-between">
           <SectionHeader
-            eyebrow="Projects"
-            title="Things I've Built"
-            description="A selection of projects I'm proud of."
+            eyebrow="selected work"
+            title="Case Studies"
+            description="Problems worth solving."
             align="left"
           />
           <Button variant="ghost" asChild className="hidden sm:flex">
-            <Link href="/projects">
-              All projects <ArrowRight size={16} />
+            <Link href="/work">
+              All work <ArrowRight size={15} />
             </Link>
           </Button>
         </div>
 
-        <StaggerContainer className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <StaggerContainer className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
           {featuredProjects.map((project) => (
             <StaggerItem key={project.id}>
-              <ProjectCard project={project} />
+              <CaseStudyCard project={project} />
             </StaggerItem>
           ))}
         </StaggerContainer>
 
         <div className="mt-10 flex justify-center sm:hidden">
           <Button variant="outline" asChild>
-            <Link href="/projects">
-              View all projects <ArrowRight size={16} />
+            <Link href="/work">
+              All case studies <ArrowRight size={15} />
             </Link>
           </Button>
         </div>
@@ -45,71 +43,44 @@ export function FeaturedProjects() {
   );
 }
 
-function ProjectCard({ project }: { project: (typeof featuredProjects)[0] }) {
-  const categoryColors: Record<string, string> = {
-    backend: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    ai: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    infrastructure: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    fullstack: "bg-green-500/10 text-green-400 border-green-500/20",
-    "open-source": "bg-accent/10 text-accent border-accent/20",
-  };
+function CaseStudyCard({ project }: { project: (typeof featuredProjects)[0] }) {
+  const metrics = project.impact.slice(0, 2).join(" · ");
 
   return (
     <Link
-      href={`/projects/${project.slug}`}
-      className="group block h-full rounded-xl border border-border bg-surface p-6 transition-all duration-200 hover:border-border-strong hover:shadow-lg hover:-translate-y-0.5"
+      href={`/work/${project.slug}`}
+      className="group flex h-full flex-col bg-background p-7 transition-colors duration-150 hover:bg-surface-hover"
     >
-      {/* Top row */}
-      <div className="mb-4 flex items-start justify-between">
-        <span
-          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium capitalize ${categoryColors[project.category] ?? ""}`}
-        >
-          {project.category}
-        </span>
-        <ArrowUpRight
-          size={16}
-          className="text-text-tertiary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent"
-        />
-      </div>
+      {/* Category */}
+      <span className="mb-6 font-mono text-[11px] uppercase tracking-widest text-text-tertiary">
+        {project.category}
+      </span>
 
       {/* Title */}
-      <h3 className="mb-2 text-base font-semibold text-text-primary group-hover:text-accent transition-colors">
+      <h3 className="mb-3 text-base font-semibold text-text-primary transition-colors duration-150 group-hover:text-accent">
         {project.title}
       </h3>
 
+      {/* Impact metrics */}
+      {metrics && (
+        <p className="mb-4 font-mono text-xs leading-relaxed text-text-tertiary">
+          {metrics}
+        </p>
+      )}
+
       {/* Description */}
-      <p className="mb-5 text-sm leading-relaxed text-text-secondary line-clamp-3">
+      <p className="mb-8 flex-1 text-sm leading-relaxed text-text-secondary">
         {project.description}
       </p>
 
-      {/* Impact metrics */}
-      {project.impact.length > 0 && (
-        <div className="mb-4 space-y-1">
-          {project.impact.slice(0, 2).map((metric) => (
-            <div key={metric} className="flex items-center gap-2 text-xs text-text-tertiary">
-              <span className="h-1 w-1 rounded-full bg-success" />
-              {metric}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Tech stack */}
-      <div className="flex flex-wrap gap-1">
-        {project.techStack.slice(0, 4).map((tech) => (
-          <span
-            key={tech}
-            className="inline-flex items-center rounded-md border border-border bg-surface-active px-2 py-0.5 font-mono text-xs text-text-secondary"
-          >
-            {tech}
-          </span>
-        ))}
-        {project.techStack.length > 4 && (
-          <span className="inline-flex items-center rounded-md border border-border px-2 py-0.5 text-xs text-text-tertiary">
-            +{project.techStack.length - 4}
-          </span>
-        )}
-      </div>
+      {/* CTA */}
+      <span className="flex items-center gap-1.5 text-xs font-medium text-text-tertiary transition-colors duration-150 group-hover:text-accent">
+        Read Case Study
+        <ArrowUpRight
+          size={13}
+          className="transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+        />
+      </span>
     </Link>
   );
 }

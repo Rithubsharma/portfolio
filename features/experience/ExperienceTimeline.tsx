@@ -17,10 +17,8 @@ export function ExperienceTimeline() {
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <FadeIn className="mb-16 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-accent">
-            Experience
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight text-text-primary sm:text-5xl">
+          <p className="font-mono text-xs text-text-tertiary">experience</p>
+          <h1 className="text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
             Work History
           </h1>
           <p className="max-w-xl text-base text-text-secondary sm:text-lg">
@@ -31,7 +29,7 @@ export function ExperienceTimeline() {
         {/* Timeline */}
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-[18px] top-2 bottom-2 w-px bg-border sm:left-[23px]" />
+          <div className="absolute left-[18px] top-2 bottom-2 w-px bg-border opacity-50 sm:left-[23px]" />
 
           <div className="space-y-4">
             {experiences.map((exp, index) => (
@@ -70,14 +68,10 @@ function ExperienceCard({
         className={cn(
           "absolute left-[11px] top-5 h-4 w-4 rounded-full border-2 sm:left-[16px]",
           isPresent
-            ? "border-accent bg-accent/20"
+            ? "border-accent bg-accent/30"
             : "border-border-strong bg-background"
         )}
-      >
-        {isPresent && (
-          <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-30" />
-        )}
-      </div>
+      />
 
       {/* Card */}
       <button
@@ -87,10 +81,10 @@ function ExperienceCard({
       >
         <div
           className={cn(
-            "rounded-xl border bg-surface p-5 transition-all duration-200",
+            "rounded-2xl border bg-surface p-5 transition-colors duration-150",
             isExpanded
-              ? "border-accent/30 shadow-md"
-              : "border-border hover:border-border-strong hover:shadow-sm"
+              ? "border-border-strong"
+              : "border-border hover:border-border-strong"
           )}
         >
           {/* Header row */}
@@ -101,8 +95,8 @@ function ExperienceCard({
                   {exp.role}
                 </h3>
                 {isPresent && (
-                  <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                    Current
+                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 font-mono text-[10px] text-text-tertiary">
+                    current
                   </span>
                 )}
               </div>
@@ -144,10 +138,10 @@ function ExperienceCard({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="mt-2 rounded-xl border border-border bg-surface p-5 space-y-6">
+            <div className="mt-2 rounded-2xl border border-border bg-surface p-5 space-y-5">
               {/* Responsibilities */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-text-primary">
@@ -171,19 +165,11 @@ function ExperienceCard({
 
               {/* Metrics */}
               {exp.metrics && exp.metrics.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-text-primary">Impact</h4>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {exp.metrics.map((metric) => (
-                      <div
-                        key={metric}
-                        className="flex items-center gap-2.5 rounded-lg border border-success/20 bg-success/5 px-3 py-2 text-sm text-text-secondary"
-                      >
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
-                        {metric}
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-text-primary">Impact</h4>
+                  <p className="font-mono text-xs leading-relaxed text-text-tertiary">
+                    {exp.metrics.join(" · ")}
+                  </p>
                 </div>
               )}
 

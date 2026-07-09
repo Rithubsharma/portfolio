@@ -47,7 +47,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           {/* Back */}
           <FadeIn>
             <Button variant="ghost" size="sm" asChild className="mb-8 -ml-2">
-              <Link href="/projects">
+              <Link href="/work">
                 <ArrowLeft size={16} /> All Projects
               </Link>
             </Button>

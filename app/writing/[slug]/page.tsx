@@ -40,7 +40,7 @@ export default async function BlogPostPage({ params }: Props) {
         {/* Back */}
         <FadeIn>
           <Button variant="ghost" size="sm" asChild className="mb-8 -ml-2">
-            <Link href="/blog">
+            <Link href="/writing">
               <ArrowLeft size={16} /> All Posts
             </Link>
           </Button>
@@ -123,7 +123,7 @@ export default async function BlogPostPage({ params }: Props) {
         <FadeIn delay={0.15} className="mt-16 border-t border-border pt-8">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/blog">
+              <Link href="/writing">
                 <ArrowLeft size={16} /> Back to Blog
               </Link>
             </Button>

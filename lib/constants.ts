@@ -2,10 +2,10 @@ import type { NavItem } from "@/types";
 import { personal, socialLinks } from "./data/personal";
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "About", href: "/about" },
+  { label: "Work", href: "/work" },
   { label: "Experience", href: "/experience" },
-  { label: "Projects", href: "/projects" },
-  { label: "Blog", href: "/blog" },
+  { label: "Writing", href: "/writing" },
+  { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
 
