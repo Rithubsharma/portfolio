@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://yourportfolio.dev";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://portfolio-streakly.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -50,24 +50,17 @@ export const metadata: Metadata = {
     description:
       "Software Development Engineer building distributed systems, cloud infrastructure, and AI-powered tooling.",
     siteName: "Rishav Sharma",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Rishav Sharma" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Rishav Sharma — Software Development Engineer",
     description:
       "Software Development Engineer building distributed systems, cloud infrastructure, and AI-powered tooling.",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
-  },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
 };
