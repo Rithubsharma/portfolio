@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Mail } from "lucide-react";
+import { ArrowRight, FileText, Mail } from "lucide-react";
 import { personal } from "@/lib/data";
 import { GradientText } from "@/components/shared/GradientText";
 
@@ -112,7 +112,7 @@ export function HeroSection() {
             </motion.div>
 
             {/* CTAs */}
-            <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-3">
+            <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
               <Link
                 href="/work"
                 className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/20"
@@ -120,29 +120,37 @@ export function HeroSection() {
                 View Case Studies
                 <ArrowRight size={15} />
               </Link>
-              <a
-                href={personal.resumeUrl}
-                download
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:border-border-strong hover:text-text-primary hover:shadow-sm"
-              >
-                Resume
-              </a>
-              <a
-                href={personal.linkedinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:border-border-strong hover:text-text-primary hover:shadow-sm"
-              >
-                <ArrowUpRight size={14} />
-                LinkedIn
-              </a>
-              <a
-                href={`mailto:${personal.email}`}
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text-secondary transition-all duration-200 hover:border-border-strong hover:text-text-primary hover:shadow-sm"
-              >
-                <Mail size={14} />
-                Email
-              </a>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={personal.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="LinkedIn"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-all duration-200 hover:-translate-y-1 hover:scale-110 hover:border-accent/50 hover:text-accent hover:shadow-lg hover:shadow-accent/10"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </a>
+                <a
+                  href={personal.resumeUrl}
+                  download
+                  title="Download Resume"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-all duration-200 hover:-translate-y-1 hover:scale-110 hover:border-accent/50 hover:text-accent hover:shadow-lg hover:shadow-accent/10"
+                >
+                  <FileText size={18} />
+                </a>
+                <a
+                  href={`mailto:${personal.email}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Send Email"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-all duration-200 hover:-translate-y-1 hover:scale-110 hover:border-accent/50 hover:text-accent hover:shadow-lg hover:shadow-accent/10"
+                >
+                  <Mail size={18} />
+                </a>
+              </div>
             </motion.div>
           </div>
 
