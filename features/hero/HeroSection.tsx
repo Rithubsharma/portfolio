@@ -137,9 +137,10 @@ export function HeroSection() {
                   href={personal.resumeUrl}
                   download
                   title="Download Resume"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-all duration-200 hover:-translate-y-1 hover:scale-110 hover:border-accent/50 hover:text-accent hover:shadow-lg hover:shadow-accent/10"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-text-secondary transition-all duration-200 hover:-translate-y-1 hover:scale-110 hover:border-accent/50 hover:text-accent hover:shadow-lg hover:shadow-accent/10"
                 >
-                  <FileText size={18} />
+                  <FileText size={16} />
+                  <span className="text-xs font-semibold">CV</span>
                 </a>
                 <a
                   href={`mailto:${personal.email}`}
