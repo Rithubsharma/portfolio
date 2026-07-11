@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronRight, MapPin, Calendar, ExternalLink } from "lucide-react";
 import { FadeIn } from "@/components/shared/FadeIn";
-import { Badge } from "@/components/ui/badge";
 import { experiences } from "@/lib/data";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -89,29 +88,56 @@ function ExperienceCard({
         >
           {/* Header row */}
           <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-semibold text-text-primary">
-                  {exp.role}
+                <h3 className="text-lg font-bold text-text-primary">
+                  {exp.company}
                 </h3>
+                <span className="text-text-tertiary">·</span>
+                <span className="text-sm font-medium text-text-secondary">
+                  {exp.role}
+                </span>
                 {isPresent && (
-                  <span className="inline-flex items-center rounded-full border border-border px-2 py-0.5 font-mono text-[10px] text-text-tertiary">
+                  <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[10px] text-accent">
                     current
                   </span>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
-                <span className="font-medium">{exp.company}</span>
-                <span className="flex items-center gap-1 text-text-tertiary">
-                  <MapPin size={12} />
-                  {exp.location}
-                </span>
-                <span className="flex items-center gap-1 text-text-tertiary">
-                  <Calendar size={12} />
+              <div className="flex flex-wrap items-center gap-3 text-xs text-text-tertiary">
+                <span className="flex items-center gap-1">
+                  <Calendar size={11} />
                   {formatDate(exp.startDate)} —{" "}
                   {exp.endDate ? formatDate(exp.endDate) : "Present"}
                 </span>
+                <span className="flex items-center gap-1">
+                  <MapPin size={11} />
+                  {exp.location}
+                </span>
+              </div>
+
+              {/* Quick metrics (always visible) */}
+              {exp.metrics && exp.metrics.length > 0 && (
+                <p className="font-mono text-xs text-accent/80">
+                  {exp.metrics.slice(0, 2).join(" · ")}
+                </p>
+              )}
+
+              {/* Top technologies */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {exp.technologies.slice(0, 4).map((tech) => (
+                  <span
+                    key={tech}
+                    className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] text-text-tertiary"
+                  >
+                    {tech}
+                  </span>
+                ))}
+                {exp.technologies.length > 4 && (
+                  <span className="px-1 font-mono text-[10px] text-text-tertiary">
+                    +{exp.technologies.length - 4}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -123,11 +149,6 @@ function ExperienceCard({
               )}
             />
           </div>
-
-          {/* Description preview (always visible) */}
-          <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-            {exp.description}
-          </p>
         </div>
       </button>
 

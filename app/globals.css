@@ -29,6 +29,10 @@
   --accent-foreground: #ffffff;
   --accent-subtle: #eff6ff;
 
+  /* Gradient Accent */
+  --gradient-accent: linear-gradient(135deg, #2563eb, #7c3aed);
+  --gradient-accent-text: linear-gradient(135deg, #3b82f6, #8b5cf6);
+
   /* Status */
   --success: #16a34a;
   --warning: #d97706;
@@ -74,6 +78,10 @@
   --accent-foreground: #ffffff;
   --accent-subtle: #1e3a5f;
 
+  /* Gradient Accent */
+  --gradient-accent: linear-gradient(135deg, #3b82f6, #a78bfa);
+  --gradient-accent-text: linear-gradient(135deg, #60a5fa, #c4b5fd);
+
   /* Status */
   --success: #4ade80;
   --warning: #fbbf24;
@@ -112,14 +120,14 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-subtle: var(--accent-subtle);
 
-  /* Animation — restrained */
+  /* Animation */
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
 
   --duration-fast: 100ms;
   --duration-base: 150ms;
-  --duration-slow: 200ms;
-  --duration-slower: 250ms;
+  --duration-slow: 500ms;
+  --duration-slower: 700ms;
 }
 
 /* ─── Base Styles ─────────────────────────────────────────────────────────── */
@@ -297,4 +305,110 @@ code {
   --tw-prose-pre-bg: var(--surface);
   --tw-prose-th-borders: var(--border);
   --tw-prose-td-borders: var(--border);
+}
+
+/* ─── Hero Gradient Mesh Blobs ───────────────────────────────────────────── */
+
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.05); }
+  50% { transform: translate(-20px, 20px) scale(0.95); }
+  75% { transform: translate(10px, 30px) scale(1.02); }
+}
+
+@keyframes blob-drift-reverse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-25px, 30px) scale(0.97); }
+  50% { transform: translate(35px, -15px) scale(1.04); }
+  75% { transform: translate(-15px, -25px) scale(1.01); }
+}
+
+.animate-blob {
+  animation: blob-drift 20s ease-in-out infinite;
+}
+
+.animate-blob-reverse {
+  animation: blob-drift-reverse 25s ease-in-out infinite;
+}
+
+/* ─── Marquee ────────────────────────────────────────────────────────────── */
+
+@keyframes marquee-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-marquee-left {
+  animation: marquee-left 40s linear infinite;
+}
+
+.animate-marquee-right {
+  animation: marquee-right 40s linear infinite;
+}
+
+.marquee-row:hover .animate-marquee-left,
+.marquee-row:hover .animate-marquee-right {
+  animation-play-state: paused;
+}
+
+/* ─── Gradient Text ──────────────────────────────────────────────────────── */
+
+.gradient-text {
+  background: var(--gradient-accent-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Gradient Border ────────────────────────────────────────────────────── */
+
+.gradient-border {
+  position: relative;
+  border: none;
+  background: var(--background);
+  border-radius: 1rem;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--gradient-accent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Section Divider ────────────────────────────────────────────────────── */
+
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--border) 20%,
+    var(--border) 80%,
+    transparent
+  );
+  margin: 0 auto;
+  max-width: 72rem;
+}
+
+/* ─── Reduced Motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-left,
+  .animate-marquee-right,
+  .animate-blob,
+  .animate-blob-reverse {
+    animation: none;
+  }
 }

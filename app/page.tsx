@@ -8,9 +8,13 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
+      <div className="section-divider" />
       <FeaturedProjects />
-      <SkillsSection preview />
+      <div className="section-divider" />
+      <SkillsSection />
+      <div className="section-divider" />
       <RecentPosts />
+      <div className="section-divider" />
       <ContactCTA />
     </>
   );

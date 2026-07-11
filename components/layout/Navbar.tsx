@@ -35,6 +35,11 @@ export function Navbar() {
             : "bg-transparent"
         )}
       >
+        {/* Scrolled glow line */}
+        {isScrolled && (
+          <div className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
+        )}
+
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <Link

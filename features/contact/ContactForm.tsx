@@ -33,11 +33,20 @@ export function ContactForm() {
 
   const onSubmit = async (data: FormData) => {
     setStatus("submitting");
-    // Simulate API call — replace with Resend API later
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setStatus("success");
-    reset();
-    setTimeout(() => setStatus("idle"), 5000);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to send");
+      setStatus("success");
+      reset();
+      setTimeout(() => setStatus("idle"), 5000);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 4000);
+    }
   };
 
   return (

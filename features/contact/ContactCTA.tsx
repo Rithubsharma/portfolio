@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { FadeIn } from "@/components/shared/FadeIn";
 import { Button } from "@/components/ui/button";
 import { personal } from "@/lib/data";
@@ -9,11 +9,11 @@ export function ContactCTA() {
     <section className="section">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <FadeIn>
-          <div className="rounded-2xl border border-border p-10 text-center sm:p-16">
-            <div className="space-y-6">
-              <div className="space-y-3">
+          <div className="gradient-border p-12 text-center sm:p-20">
+            <div className="space-y-8">
+              <div className="space-y-4">
                 <p className="font-mono text-xs text-text-tertiary">contact</p>
-                <h2 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+                <h2 className="text-4xl font-bold tracking-tight text-text-primary sm:text-5xl">
                   Let&apos;s work together
                 </h2>
                 <p className="mx-auto max-w-lg text-base text-text-secondary">

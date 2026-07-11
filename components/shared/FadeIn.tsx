@@ -12,16 +12,16 @@ interface FadeInProps extends HTMLMotionProps<"div"> {
 }
 
 const directionVariants = {
-  bottom: { y: 12, opacity: 0 },
-  top: { y: -12, opacity: 0 },
-  left: { x: -12, opacity: 0 },
-  right: { x: 12, opacity: 0 },
-  scale: { scale: 0.97, opacity: 0 },
+  bottom: { y: 28, opacity: 0 },
+  top: { y: -28, opacity: 0 },
+  left: { x: -28, opacity: 0 },
+  right: { x: 28, opacity: 0 },
+  scale: { scale: 0.95, opacity: 0 },
 };
 
 export function FadeIn({
   delay = 0,
-  duration = 0.2,
+  duration = 0.5,
   from = "bottom",
   className,
   children,
