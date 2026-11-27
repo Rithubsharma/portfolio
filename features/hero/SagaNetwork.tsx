@@ -6,7 +6,16 @@ import { useCallback, useEffect, useRef } from "react";
  * A small network of services running sagas. A run walks a chain of nodes one hop
  * at a time, lighting each step it completes. When a step fails, the run travels
  * back the way it came and undoes the finished steps in reverse order.
+ *
+ * Nodes are labelled with service names so the diagram reads as a real
+ * distributed system rather than an abstract graph.
  */
+
+const SERVICE_NAMES = [
+  "Gateway", "Auth", "Orders", "Payments",
+  "Inventory", "Fulfil", "Notify", "Cache",
+  "Queue", "DB", "Audit", "Events",
+];
 
 interface NodeState {
   u: number;
@@ -19,6 +28,7 @@ interface NodeState {
   glow: number;
   x: number;
   y: number;
+  name: string;
 }
 
 interface Run {
@@ -66,6 +76,7 @@ function buildGraph(cols: number, rows: number): NodeState[] {
         glow: 0,
         x: 0,
         y: 0,
+        name: SERVICE_NAMES[(r * cols + c) % SERVICE_NAMES.length],
       });
     }
   }
@@ -141,7 +152,6 @@ export function SagaNetwork({ className }: { className?: string }) {
       for (const node of nodes) {
         const driftX = still ? 0 : Math.sin(now / 2400 + node.phase) * 2.4;
         const driftY = still ? 0 : Math.cos(now / 2900 + node.phase) * 2.4;
-        // Nearer nodes move further against the pointer, which gives the field depth.
         node.x = pad + node.u * (w - pad * 2) + ((0.5 - easedX) * 22 + driftX) * node.depth;
         node.y = pad + node.v * (h - pad * 2) + ((0.5 - easedY) * 14 + driftY) * node.depth;
       }
@@ -192,6 +202,7 @@ export function SagaNetwork({ className }: { className?: string }) {
       const base = w < 520 ? 3.1 : 3.9;
       ctx.clearRect(0, 0, w, h);
 
+      // ── Background edges ────────────────────────────────────────────────────
       ctx.lineWidth = 1;
       ctx.strokeStyle = line;
       ctx.globalAlpha = 0.7 * intro;
@@ -205,6 +216,7 @@ export function SagaNetwork({ className }: { className?: string }) {
       });
       ctx.stroke();
 
+      // Hovered node's connections pop forward.
       if (hover >= 0) {
         ctx.lineWidth = 1.4;
         ctx.strokeStyle = ink;
@@ -217,13 +229,14 @@ export function SagaNetwork({ className }: { className?: string }) {
         ctx.stroke();
       }
 
-      // The lit part of each run.
-      ctx.lineWidth = 2.2;
+      // ── Lit edges (the active path of each run) ──────────────────────────────
+      ctx.lineWidth = 2.4;
       ctx.strokeStyle = spot;
       for (const run of runs) {
         const length = litLength(run);
         if (length <= 0) continue;
-        ctx.globalAlpha = run.alpha;
+        ctx.globalAlpha = run.alpha * (run.state === "back" ? 0.6 : 1);
+        ctx.strokeStyle = run.state === "back" ? line : spot;
         ctx.beginPath();
         ctx.moveTo(nodes[run.path[0]].x, nodes[run.path[0]].y);
         for (let i = 1; i <= Math.floor(length); i++) {
@@ -236,6 +249,7 @@ export function SagaNetwork({ className }: { className?: string }) {
         ctx.stroke();
       }
 
+      // ── Nodes ───────────────────────────────────────────────────────────────
       nodes.forEach((node, i) => {
         const appear = still ? 1 : easeOut(clamp01((now - started - 200 - node.u * 900) / 500));
         if (appear <= 0) return;
@@ -245,15 +259,18 @@ export function SagaNetwork({ className }: { className?: string }) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
         ctx.fill();
+
+        // Glow halo when processing.
         if (node.glow > 0.02) {
-          ctx.globalAlpha = node.glow;
+          ctx.globalAlpha = node.glow * 0.85;
           ctx.fillStyle = spot;
           ctx.beginPath();
-          ctx.arc(node.x, node.y, r * (1 + 0.55 * node.glow), 0, Math.PI * 2);
+          ctx.arc(node.x, node.y, r * (1 + 0.65 * node.glow), 0, Math.PI * 2);
           ctx.fill();
         }
+
+        // Failed step: hollow ring marks where compensation is needed.
         if (node.failed > 0) {
-          // A failed step: hollow, so it reads as "did not complete".
           ctx.globalAlpha = 1;
           ctx.fillStyle = floor;
           ctx.strokeStyle = ink;
@@ -263,6 +280,8 @@ export function SagaNetwork({ className }: { className?: string }) {
           ctx.fill();
           ctx.stroke();
         }
+
+        // Hover ring.
         if (i === hover) {
           ctx.globalAlpha = 0.85;
           ctx.strokeStyle = ink;
@@ -273,6 +292,7 @@ export function SagaNetwork({ className }: { className?: string }) {
         }
       });
 
+      // ── Arrival rings ────────────────────────────────────────────────────────
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = spot;
       for (const ring of rings) {
@@ -284,17 +304,67 @@ export function SagaNetwork({ className }: { className?: string }) {
         ctx.stroke();
       }
 
+      // ── Packets with trail ───────────────────────────────────────────────────
       if (!still) {
         for (const run of runs) {
           if (run.state === "fade") continue;
-          const tip = pointOn(run, litLength(run));
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = run.state === "back" ? ink : spot;
-          ctx.beginPath();
-          ctx.arc(tip.x, tip.y, 3.6, 0, Math.PI * 2);
-          ctx.fill();
+          const length = litLength(run);
+          const isBack = run.state === "back";
+
+          // Three ghost circles trail behind the main packet.
+          for (let t = 3; t >= 1; t--) {
+            const tlen = Math.max(0, length - t * 0.07);
+            const tp = pointOn(run, tlen);
+            ctx.globalAlpha = run.alpha * (1 - t / 4) * (isBack ? 0.28 : 0.45);
+            ctx.fillStyle = isBack ? ink : spot;
+            ctx.beginPath();
+            ctx.arc(tp.x, tp.y, 3 - t * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          const tip = pointOn(run, length);
+          ctx.globalAlpha = run.alpha;
+
+          if (isBack) {
+            // Rollback packet: hollow ring so it reads as "undoing".
+            ctx.strokeStyle = ink;
+            ctx.fillStyle = floor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(tip.x, tip.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = spot;
+            ctx.beginPath();
+            ctx.arc(tip.x, tip.y, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
+
+      // ── Service node labels ──────────────────────────────────────────────────
+      if (intro > 0.3) {
+        const lfs = Math.max(8, Math.min(10, w / 78));
+        ctx.font = `500 ${lfs}px system-ui, -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        nodes.forEach((node, i) => {
+          const appear = still ? 1 : easeOut(clamp01((now - started - 200 - node.u * 900) / 500));
+          if (appear < 0.2) return;
+          const r = base * (0.8 + 0.3 * node.depth) * appear;
+          const isHov = i === hover;
+          const isActive = node.glow > 0.25;
+          const labelAlpha = appear * (intro - 0.3) / 0.7 * (isHov ? 0.9 : isActive ? 0.75 : 0.32);
+          if (labelAlpha < 0.04) return;
+          ctx.globalAlpha = labelAlpha;
+          ctx.fillStyle = isHov || isActive ? spot : ink;
+          ctx.fillText(node.name, node.x, node.y + r + 5);
+        });
+        ctx.textBaseline = "alphabetic";
+        ctx.textAlign = "left";
+      }
+
       ctx.globalAlpha = 1;
     };
 
@@ -364,7 +434,6 @@ export function SagaNetwork({ className }: { className?: string }) {
       const now = performance.now();
 
       if (reduced.matches) {
-        // No travel: show where the run ended up.
         for (const node of nodes) {
           node.lit = 0;
           node.failed = 0;
@@ -395,7 +464,6 @@ export function SagaNetwork({ className }: { className?: string }) {
       easedY += (pointerY - easedY) * 0.06;
       place(now);
       if (now >= nextAmbient && runs.length < (w < 520 ? 2 : 3)) {
-        // Every fifth background run fails, so the undo is part of the picture.
         startRun(undefined, ambientCount % 5 === 4);
         ambientCount++;
         nextAmbient = now + 1300 + Math.random() * 700;
@@ -509,7 +577,6 @@ export function SagaNetwork({ className }: { className?: string }) {
           aria-label="A network of connected services. Requests travel between them and light each step they complete; when a step fails, the finished steps are undone in reverse."
           className="absolute inset-0 h-full w-full touch-pan-y"
         />
-        {/* Spike tape: how a stage marks where people stand. */}
         <span aria-hidden className="pointer-events-none absolute left-3 top-3 h-1.5 w-7 bg-tape" />
         <span aria-hidden className="pointer-events-none absolute left-3 top-3 h-7 w-1.5 bg-tape" />
         <span aria-hidden className="pointer-events-none absolute bottom-3 right-3 h-1.5 w-7 bg-tape" />

@@ -40,7 +40,7 @@ export function Work() {
                 </p>
                 <h3
                   style={delay(1)}
-                  className="rv-up text-[clamp(2.6rem,7.4vw,7rem)] leading-[0.9] [font-stretch:86%] lg:col-span-8"
+                  className="rv-stretch text-[clamp(2.6rem,7.4vw,7rem)] leading-[0.9] [font-stretch:86%] lg:col-span-8"
                 >
                   {project.title}
                 </h3>

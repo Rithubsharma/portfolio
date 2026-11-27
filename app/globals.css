@@ -382,6 +382,18 @@
   rotate: 45deg;
 }
 
+/*
+ * rv-stretch: same as rv-up but also opens out from condensed type —
+ * the site's width-axis motion language applied to scroll reveals.
+ */
+.rv-stretch {
+  transition:
+    font-stretch 1100ms var(--ease-step),
+    opacity 700ms var(--ease-step),
+    transform 700ms var(--ease-step);
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   [data-inview="false"] .rv-up,
   [data-inview="false"].rv-up {
@@ -397,6 +409,13 @@
   [data-inview="false"].rv-title {
     font-stretch: 50%;
     opacity: 0;
+  }
+
+  [data-inview="false"] .rv-stretch,
+  [data-inview="false"].rv-stretch {
+    font-stretch: 60%;
+    opacity: 0;
+    transform: translateY(14px);
   }
 
   [data-inview="false"] .mark {
@@ -552,6 +571,7 @@
   .rv-up,
   .rv-rule,
   .rv-title,
+  .rv-stretch,
   .mark,
   .tl-node {
     transition: none;

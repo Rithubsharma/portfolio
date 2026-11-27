@@ -75,7 +75,7 @@ export function Experience() {
                   </p>
                   <h3
                     style={delay(1)}
-                    className="rv-up mt-3 text-[clamp(2.75rem,6.4vw,5.75rem)] [font-stretch:92%]"
+                    className="rv-stretch mt-3 text-[clamp(2.75rem,6.4vw,5.75rem)] [font-stretch:92%]"
                   >
                     {job.companyUrl ? (
                       <a

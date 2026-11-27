@@ -6,6 +6,16 @@ import { skillGroups } from "@/lib/data";
 import type { Skill } from "@/types";
 import { cn } from "@/lib/utils";
 
+/** Maps a usedIn string to the work-section anchor for that project. */
+function projectAnchor(usedIn: string): string | null {
+  if (usedIn.startsWith("Patchstack")) return "#work-patchstack";
+  if (usedIn.startsWith("Saga")) return "#work-saga";
+  if (usedIn.startsWith("Runtime")) return "#work-diagnostics";
+  if (usedIn.startsWith("Warehouse")) return "#work-inbound";
+  if (usedIn.startsWith("Product page")) return "#work-pdp";
+  return null;
+}
+
 export function Skills() {
   const [active, setActive] = useState<Skill | null>(null);
 
@@ -24,7 +34,25 @@ export function Skills() {
           <p className="text-base sm:text-lg">
             <span className="bg-tape px-1.5 font-semibold text-tape-ink">{active.name}</span>
             <span className="text-text-secondary"> used in </span>
-            <span className="text-text-primary">{active.usedIn.join("; ")}</span>
+            {active.usedIn.map((item, i) => {
+              const href = projectAnchor(item);
+              return (
+                <span key={item}>
+                  {i > 0 && (
+                    <span className="text-text-secondary">
+                      {i === active.usedIn.length - 1 ? " and " : ", "}
+                    </span>
+                  )}
+                  {href ? (
+                    <a href={href} className="link font-medium text-text-primary">
+                      {item}
+                    </a>
+                  ) : (
+                    <span className="text-text-primary">{item}</span>
+                  )}
+                </span>
+              );
+            })}
           </p>
         ) : (
           <p className="text-base text-text-secondary sm:text-lg">
