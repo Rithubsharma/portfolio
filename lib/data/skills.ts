@@ -1,75 +1,54 @@
-import type { SkillCategory } from "@/types";
+import type { SkillGroup } from "@/types";
 
-export const skillCategories: SkillCategory[] = [
+const PATCHSTACK = "Patchstack platform, GoDaddy";
+const SAGA = "Saga orchestration, GoDaddy";
+const DIAGNOSTICS = "Runtime diagnostics, GoDaddy";
+const INBOUND = "Warehouse inbound, DP World";
+const PDP = "Product page, DP World";
+const DUBUY = "Dubuy Connect, DP World";
+
+/** Groups and names follow the resume. `usedIn` lists only work the resume ties to the skill. */
+export const skillGroups: SkillGroup[] = [
   {
     label: "Languages",
-    icon: "Code2",
     skills: [
-      { name: "Java", proficiency: "expert" },
-      { name: "Go", proficiency: "expert" },
-      { name: "Python", proficiency: "advanced" },
-      { name: "C++", proficiency: "advanced" },
-      { name: "SQL", proficiency: "expert" },
-      { name: "TypeScript", proficiency: "intermediate" },
+      { name: "Java", usedIn: [INBOUND, PDP, DUBUY] },
+      { name: "Golang", usedIn: [PATCHSTACK, SAGA, DIAGNOSTICS] },
+      { name: "Python", usedIn: [] },
+      { name: "C++", usedIn: [] },
+      { name: "SQL", usedIn: [] },
     ],
   },
   {
     label: "Backend",
-    icon: "Server",
     skills: [
-      { name: "Spring Boot", proficiency: "expert" },
-      { name: "Microservices", proficiency: "expert" },
-      { name: "REST APIs", proficiency: "expert" },
-      { name: "System Design", proficiency: "expert" },
-      { name: "Distributed Systems", proficiency: "expert" },
-      { name: "Kafka", proficiency: "expert" },
-      { name: "gRPC", proficiency: "advanced" },
+      { name: "Spring Boot", usedIn: [INBOUND, PDP, DUBUY] },
+      { name: "Microservices", usedIn: [DIAGNOSTICS] },
+      { name: "Distributed Systems", usedIn: [SAGA, DIAGNOSTICS] },
+      { name: "Kafka", usedIn: [INBOUND] },
+      { name: "System Design", usedIn: [] },
+      { name: "REST APIs", usedIn: [] },
     ],
   },
   {
     label: "Cloud",
-    icon: "Cloud",
     skills: [
-      { name: "AWS EKS", proficiency: "expert" },
-      { name: "AWS SQS", proficiency: "expert" },
-      { name: "AWS DynamoDB", proficiency: "expert" },
-      { name: "AWS CDK", proficiency: "advanced" },
-      { name: "Kubernetes", proficiency: "advanced" },
-      { name: "Docker", proficiency: "expert" },
-      { name: "Azure Blob", proficiency: "intermediate" },
+      { name: "AWS EKS", usedIn: [DIAGNOSTICS] },
+      { name: "SQS", usedIn: [PATCHSTACK, SAGA] },
+      { name: "Kubernetes", usedIn: [DIAGNOSTICS] },
+      { name: "Docker", usedIn: [] },
     ],
   },
   {
-    label: "Databases",
-    icon: "Database",
+    label: "Databases and tools",
     skills: [
-      { name: "PostgreSQL", proficiency: "expert" },
-      { name: "DynamoDB", proficiency: "expert" },
-      { name: "Redis", proficiency: "expert" },
-      { name: "MySQL", proficiency: "advanced" },
-      { name: "Elasticsearch", proficiency: "advanced" },
-    ],
-  },
-  {
-    label: "Observability",
-    icon: "Terminal",
-    skills: [
-      { name: "Prometheus", proficiency: "advanced" },
-      { name: "Grafana", proficiency: "advanced" },
-      { name: "CloudWatch", proficiency: "advanced" },
-      { name: "pprof", proficiency: "advanced" },
-      { name: "OpenTelemetry", proficiency: "intermediate" },
-    ],
-  },
-  {
-    label: "AI / ML",
-    icon: "Cpu",
-    skills: [
-      { name: "Claude Sonnet", proficiency: "advanced" },
-      { name: "LLM Integration", proficiency: "advanced" },
-      { name: "RAG Pipelines", proficiency: "intermediate" },
-      { name: "Scikit-learn", proficiency: "intermediate" },
-      { name: "Decision Trees", proficiency: "intermediate" },
+      { name: "PostgreSQL", usedIn: [PATCHSTACK, SAGA, DIAGNOSTICS] },
+      { name: "DynamoDB", usedIn: [PATCHSTACK, SAGA] },
+      { name: "Redis", usedIn: [PDP] },
+      { name: "Prometheus", usedIn: [DIAGNOSTICS] },
+      { name: "Grafana", usedIn: [] },
+      { name: "Elasticsearch", usedIn: [] },
+      { name: "CloudWatch", usedIn: [] },
     ],
   },
 ];

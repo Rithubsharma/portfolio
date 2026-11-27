@@ -1,50 +1,31 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 
-interface ThemeToggleProps {
-  className?: string;
-}
+const subscribeNoop = () => () => {};
 
-export function ThemeToggle({ className }: ThemeToggleProps) {
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
-
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted) {
-    return (
-      <div className={cn("h-9 w-9 rounded-md bg-surface animate-pulse", className)} />
-    );
-  }
+/** Named for what it does on a stage: bring the house lights up or down. */
+export function ThemeToggle() {
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false
+  );
+  const { resolvedTheme, setTheme } = useTheme();
+  const dark = mounted && resolvedTheme === "dark";
 
   return (
     <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className={cn(
-        "flex h-9 w-9 items-center justify-center rounded-md text-text-secondary",
-        "transition-colors hover:bg-surface-hover hover:text-text-primary",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
-        className
-      )}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      type="button"
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      className="flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
     >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={theme}
-          initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
-          animate={{ scale: 1, opacity: 1, rotate: 0 }}
-          exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center justify-center"
-        >
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-        </motion.span>
-      </AnimatePresence>
+      <span
+        aria-hidden
+        className={dark ? "h-2.5 w-2.5 rounded-full bg-tape" : "h-2.5 w-2.5 rounded-full border-2 border-current"}
+      />
+      {dark ? "Lights up" : "Lights down"}
     </button>
   );
 }

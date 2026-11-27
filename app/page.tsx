@@ -1,21 +1,19 @@
-import { HeroSection } from "@/features/hero/HeroSection";
-import { FeaturedProjects } from "@/features/projects/FeaturedProjects";
-import { SkillsSection } from "@/features/skills/SkillsSection";
-import { RecentPosts } from "@/features/blog/RecentPosts";
-import { ContactCTA } from "@/features/contact/ContactCTA";
+import { Hero } from "@/features/hero/Hero";
+import { About } from "@/features/about/About";
+import { Experience } from "@/features/experience/Experience";
+import { Work } from "@/features/work/Work";
+import { Skills } from "@/features/skills/Skills";
+import { Contact } from "@/features/contact/Contact";
 
 export default function HomePage() {
   return (
     <>
-      <HeroSection />
-      <div className="section-divider" />
-      <FeaturedProjects />
-      <div className="section-divider" />
-      <SkillsSection />
-      <div className="section-divider" />
-      <RecentPosts />
-      <div className="section-divider" />
-      <ContactCTA />
+      <Hero />
+      <About />
+      <Experience />
+      <Work />
+      <Skills />
+      <Contact />
     </>
   );
 }

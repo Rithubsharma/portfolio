@@ -3,137 +3,126 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { contactSchema, type ContactFormValues } from "@/lib/contact-schema";
+import { personal } from "@/lib/data";
+import { IS_STATIC_SITE } from "@/lib/site";
 
-const schema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Enter a valid email address"),
-  subject: z.string().min(5, "Subject must be at least 5 characters"),
-  message: z.string().min(20, "Message must be at least 20 characters"),
-});
+type Status = "idle" | "sending" | "sent" | "drafted" | "failed";
 
-type FormData = z.infer<typeof schema>;
-
-type Status = "idle" | "submitting" | "success" | "error";
+const FIELDS = [
+  { name: "name", label: "Your name", type: "text", autoComplete: "name" },
+  { name: "email", label: "Your email", type: "email", autoComplete: "email" },
+  { name: "subject", label: "Subject", type: "text", autoComplete: "off" },
+] as const;
 
 export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
-
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<ContactFormValues>({ resolver: zodResolver(contactSchema) });
 
-  const onSubmit = async (data: FormData) => {
-    setStatus("submitting");
+  const onSubmit = async (values: ContactFormValues) => {
+    if (IS_STATIC_SITE) {
+      // A static host has no server to send mail from, so hand the message to the
+      // visitor's own email app as a ready-to-send draft.
+      const body = `${values.message}\n\n${values.name}\n${values.email}`;
+      window.location.assign(
+        `mailto:${personal.email}?subject=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(body)}`
+      );
+      setStatus("drafted");
+      return;
+    }
+
+    setStatus("sending");
     try {
-      const res = await fetch("/api/contact", {
+      const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(values),
       });
-      if (!res.ok) throw new Error("Failed to send");
-      setStatus("success");
+      if (!response.ok) throw new Error("send failed");
       reset();
-      setTimeout(() => setStatus("idle"), 5000);
+      setStatus("sent");
     } catch {
-      setStatus("error");
-      setTimeout(() => setStatus("idle"), 4000);
+      setStatus("failed");
     }
   };
 
+  const sending = status === "sending";
+
   return (
-    <AnimatePresence mode="wait">
-      {status === "success" ? (
-        <motion.div
-          key="success"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center justify-center gap-4 rounded-xl border border-success/30 bg-success/5 p-12 text-center"
-        >
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-success/30 bg-success/10">
-            <CheckCircle size={28} className="text-success" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-lg font-semibold text-text-primary">Message sent!</p>
-            <p className="text-sm text-text-secondary">
-              Thanks for reaching out. I&apos;ll get back to you within 24 hours.
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
+      {FIELDS.map((field) => (
+        <div key={field.name}>
+          <label htmlFor={`contact-${field.name}`} className="block text-sm font-medium text-text-secondary">
+            {field.label}
+          </label>
+          <input
+            id={`contact-${field.name}`}
+            type={field.type}
+            autoComplete={field.autoComplete}
+            disabled={sending}
+            aria-invalid={Boolean(errors[field.name])}
+            aria-describedby={errors[field.name] ? `contact-${field.name}-error` : undefined}
+            className="field"
+            {...register(field.name)}
+          />
+          {errors[field.name] && (
+            <p id={`contact-${field.name}-error`} className="mt-1.5 text-sm text-error">
+              {errors[field.name]?.message}
             </p>
-          </div>
-        </motion.div>
-      ) : (
-        <motion.form
-          key="form"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-5"
+          )}
+        </div>
+      ))}
+
+      <div>
+        <label htmlFor="contact-message" className="block text-sm font-medium text-text-secondary">
+          Message
+        </label>
+        <textarea
+          id="contact-message"
+          rows={4}
+          disabled={sending}
+          aria-invalid={Boolean(errors.message)}
+          aria-describedby={errors.message ? "contact-message-error" : undefined}
+          className="field resize-y"
+          {...register("message")}
+        />
+        {errors.message && (
+          <p id="contact-message-error" className="mt-1.5 text-sm text-error">
+            {errors.message.message}
+          </p>
+        )}
+      </div>
+
+      {/* Honeypot: hidden from people, so only bots fill it in. */}
+      <input type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" {...register("website")} />
+
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <button
+          type="submit"
+          disabled={sending}
+          className="btn"
         >
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Input
-              label="Name"
-              placeholder="Rishav Sharma"
-              error={errors.name?.message}
-              disabled={status === "submitting"}
-              {...register("name")}
-            />
-            <Input
-              label="Email"
-              type="email"
-              placeholder="rishavsharma3673@gmail.com"
-              error={errors.email?.message}
-              disabled={status === "submitting"}
-              {...register("email")}
-            />
-          </div>
-
-          <Input
-            label="Subject"
-            placeholder="Backend engineering opportunity at..."
-            error={errors.subject?.message}
-            disabled={status === "submitting"}
-            {...register("subject")}
-          />
-
-          <Textarea
-            label="Message"
-            placeholder="Hi Rishav, I came across your work on..."
-            className="min-h-[140px]"
-            error={errors.message?.message}
-            disabled={status === "submitting"}
-            {...register("message")}
-          />
-
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={status === "submitting"}
-          >
-            {status === "submitting" ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                Send Message
-                <Send size={16} />
-              </>
-            )}
-          </Button>
-        </motion.form>
-      )}
-    </AnimatePresence>
+          {IS_STATIC_SITE ? "Open email draft" : sending ? "Sending message" : "Send message"}
+        </button>
+        <p role="status" className="text-sm">
+          {status === "sent" && <span className="text-success">Message sent. I will reply by email.</span>}
+          {status === "drafted" && (
+            <span className="text-text-secondary">
+              Email draft opened in your mail app. Send it from there.
+            </span>
+          )}
+          {status === "failed" && (
+            <span className="text-error">
+              The message did not send. Try again, or email {personal.email}.
+            </span>
+          )}
+        </p>
+      </div>
+    </form>
   );
 }

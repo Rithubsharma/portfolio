@@ -1,90 +1,92 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Anybody, Instrument_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ScrollProgress } from "@/components/shared/ScrollProgress";
+import { personal } from "@/lib/data";
+import { asset, SITE_URL as siteUrl } from "@/lib/site";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Display face: the width axis is the site's motion language.
+const anybody = Anybody({
+  variable: "--font-anybody",
+  subsets: ["latin"],
+  axes: ["wdth"],
+  display: "swap",
+});
+
+const instrumentSans = Instrument_Sans({
+  variable: "--font-text",
   subsets: ["latin"],
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://portfolio-streakly.vercel.app";
+const title = "Rishav Sharma, backend engineer";
+const socialImage = {
+  url: `${siteUrl}/brand/og.png`,
+  width: 1200,
+  height: 630,
+  alt: "Rishav Sharma, backend engineer. Systems that stay in step.",
+};
+const description =
+  "Rishav Sharma is a Software Development Engineer at GoDaddy in Bangalore, building distributed systems in Go and Java. Previously DP World. IIT Roorkee graduate.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: {
-    default: "Rishav Sharma — Software Development Engineer",
-    template: "%s | Rishav Sharma",
-  },
-  description:
-    "Software Development Engineer with 4+ years building distributed systems, cloud-native applications, and AI-powered infrastructure. IIT Roorkee graduate.",
+  title: { default: title, template: "%s | Rishav Sharma" },
+  description,
   keywords: [
     "Rishav Sharma",
     "software development engineer",
     "backend engineer",
     "distributed systems",
-    "Go engineer",
-    "Java developer",
+    "Go",
+    "Java",
     "Kafka",
     "AWS",
     "GoDaddy",
     "IIT Roorkee",
   ],
-  authors: [{ name: "Rishav Sharma", url: siteUrl }],
-  creator: "Rishav Sharma",
+  authors: [{ name: personal.name, url: siteUrl }],
+  creator: personal.name,
   openGraph: {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    title: "Rishav Sharma — Software Development Engineer",
-    description:
-      "Software Development Engineer building distributed systems, cloud infrastructure, and AI-powered tooling.",
-    siteName: "Rishav Sharma",
+    title,
+    description,
+    siteName: personal.name,
+    images: [socialImage],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Rishav Sharma — Software Development Engineer",
-    description:
-      "Software Development Engineer building distributed systems, cloud infrastructure, and AI-powered tooling.",
-  },
+  twitter: { card: "summary_large_image", title, description, images: [socialImage] },
+  icons: { icon: [{ url: asset("/brand/icon.png"), type: "image/png", sizes: "32x32" }] },
   robots: {
     index: true,
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
-  manifest: "/site.webmanifest",
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#eceeea" },
+    { media: "(prefers-color-scheme: dark)", color: "#08262a" },
   ],
 };
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Person",
-  name: "Rishav Sharma",
+  name: personal.name,
   url: siteUrl,
-  jobTitle: "Software Development Engineer",
-  worksFor: { "@type": "Organization", name: "GoDaddy" },
-  alumniOf: { "@type": "CollegeOrUniversity", name: "Indian Institute of Technology, Roorkee" },
-  email: "rishavsharma3673@gmail.com",
-  sameAs: [
-    "https://github.com/Rithubsharma",
-    "https://www.linkedin.com/in/rishav-sharma-023482188/",
-  ],
+  jobTitle: personal.role,
+  worksFor: { "@type": "Organization", name: personal.company },
+  alumniOf: {
+    "@type": "CollegeOrUniversity",
+    name: "Indian Institute of Technology, Roorkee",
+  },
+  email: personal.email,
+  sameAs: [personal.githubUrl, personal.linkedinUrl],
 };
 
 export default function RootLayout({
@@ -94,19 +96,28 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${anybody.variable} ${instrumentSans.variable}`}
     >
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* Scroll reveals start hidden; without scripts, show everything. */}
+        <noscript>
+          <style>{`[data-inview="false"],[data-inview="false"] *{opacity:1!important;transform:none!important}.scrub-word{opacity:1!important}`}</style>
+        </noscript>
       </head>
       <body className="min-h-screen bg-background text-text-primary antialiased">
         <ThemeProvider>
-          <ScrollProgress />
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-foreground"
+          >
+            Skip to content
+          </a>
           <Navbar />
-          <main className="flex flex-col">{children}</main>
+          <main id="main">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>
