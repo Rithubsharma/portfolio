@@ -6,6 +6,15 @@ import { skillGroups } from "@/lib/data";
 import type { Skill } from "@/types";
 import { cn } from "@/lib/utils";
 
+/** Maps usedIn strings (from skills.ts) to their work-section anchor IDs. */
+const WORK_LINK_MAP: Record<string, string> = {
+  "Patchstack platform, GoDaddy": "work-patchstack",
+  "Saga orchestration, GoDaddy": "work-saga",
+  "Runtime diagnostics, GoDaddy": "work-diagnostics",
+  "Warehouse inbound, DP World": "work-inbound",
+  "Product page, DP World": "work-pdp",
+};
+
 export function Skills() {
   const [active, setActive] = useState<Skill | null>(null);
 
@@ -24,7 +33,24 @@ export function Skills() {
           <p className="text-base sm:text-lg">
             <span className="bg-tape px-1.5 font-semibold text-tape-ink">{active.name}</span>
             <span className="text-text-secondary"> used in </span>
-            <span className="text-text-primary">{active.usedIn.join("; ")}</span>
+            {active.usedIn.map((project, i) => {
+              const anchor = WORK_LINK_MAP[project];
+              return (
+                <span key={project}>
+                  {i > 0 && <span className="text-text-secondary">; </span>}
+                  {anchor ? (
+                    <a
+                      href={`#${anchor}`}
+                      className="text-text-primary underline decoration-border-strong underline-offset-2 hover:text-accent hover:decoration-accent"
+                    >
+                      {project}
+                    </a>
+                  ) : (
+                    <span className="text-text-primary">{project}</span>
+                  )}
+                </span>
+              );
+            })}
           </p>
         ) : (
           <p className="text-base text-text-secondary sm:text-lg">

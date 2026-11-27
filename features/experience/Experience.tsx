@@ -1,21 +1,120 @@
 "use client";
 
-import { Fragment, useRef, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { InView } from "@/components/motion/InView";
 import { experiences } from "@/lib/data";
 
 const delay = (i: number) => ({ "--i": i }) as CSSProperties;
 
-/** Renders `[[figure]]` spans in a point as highlighted marks. */
+// ─── CountUp for highlighted figures ─────────────────────────────────────────
+
+interface ParsedNum {
+  prefix: string;
+  value: number;
+  suffix: string;
+  rest: string;
+  isDecimal: boolean;
+}
+
+function parseMarkNum(text: string): ParsedNum | null {
+  // $1.9M or $1.9M in revenue
+  const m1 = text.match(/^(\$)([\d.]+)(M|K|B)?(.*)$/);
+  if (m1 && parseFloat(m1[2]) > 0)
+    return { prefix: m1[1], value: parseFloat(m1[2]), suffix: m1[3] || "", rest: m1[4], isDecimal: true };
+
+  // 50,000+ or 50,000+ provisioning requests
+  const m2 = text.match(/^([\d,]+)(\+)(.*)$/);
+  if (m2)
+    return { prefix: "", value: parseInt(m2[1].replace(/,/g, "")), suffix: m2[2], rest: m2[3], isDecimal: false };
+
+  // 99.5% or 60% or 40% or 80% with optional trailing text
+  const m3 = text.match(/^([\d.]+)(%)(.*)$/);
+  if (m3)
+    return { prefix: "", value: parseFloat(m3[1]), suffix: "%", rest: m3[3], isDecimal: m3[1].includes(".") };
+
+  // 200 ms
+  const m4 = text.match(/^(\d+)(\s*ms)(.*)$/i);
+  if (m4)
+    return { prefix: "", value: parseInt(m4[1]), suffix: m4[2], rest: m4[3], isDecimal: false };
+
+  // Plain integer (500, 200, etc.) — only when it's the whole string or followed by a space
+  const m5 = text.match(/^(\d+)(\s.+)?$/);
+  if (m5 && m5[1].length > 1)
+    return { prefix: "", value: parseInt(m5[1]), suffix: "", rest: m5[2] || "", isDecimal: false };
+
+  return null;
+}
+
+function formatCount(parsed: ParsedNum, progress: number): string {
+  const val = parsed.value * progress;
+  if (parsed.isDecimal) return val.toFixed(1);
+  if (parsed.value >= 1000) return Math.round(val).toLocaleString();
+  return Math.round(val).toString();
+}
+
+/** A `.mark` span that counts up from zero when it enters the viewport. */
+function CountMark({ text }: { text: string }) {
+  const parsed = parseMarkNum(text);
+  const ref = useRef<HTMLSpanElement>(null);
+  const [progress, setProgress] = useState(0);
+  const hasStarted = useRef(false);
+
+  useEffect(() => {
+    if (!parsed) return;
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || hasStarted.current) return;
+        hasStarted.current = true;
+        observer.disconnect();
+
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          setProgress(1);
+          return;
+        }
+
+        const dur = 1400;
+        const t0 = performance.now();
+        let raf: number;
+        const step = (now: number) => {
+          const t = Math.min(1, (now - t0) / dur);
+          setProgress(1 - Math.pow(1 - t, 3));
+          if (t < 1) {
+            raf = requestAnimationFrame(step);
+          }
+        };
+        raf = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(raf);
+      },
+      { rootMargin: "0px 0px -20% 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!parsed) return <span className="mark">{text}</span>;
+
+  return (
+    <span ref={ref} className="mark">
+      {parsed.prefix}
+      {formatCount(parsed, progress)}
+      {parsed.suffix}
+      {parsed.rest}
+    </span>
+  );
+}
+
+/** Renders `[[figure]]` spans in a point as highlighted marks, with count-up for numbers. */
 function Marked({ text }: { text: string }) {
   return (
     <>
       {text.split(/\[\[(.+?)\]\]/g).map((part, i) =>
         i % 2 === 1 ? (
-          <span key={i} className="mark">
-            {part}
-          </span>
+          <CountMark key={i} text={part} />
         ) : (
           <Fragment key={i}>{part}</Fragment>
         )

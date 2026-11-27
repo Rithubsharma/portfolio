@@ -8,6 +8,12 @@ import { useCallback, useEffect, useRef } from "react";
  * back the way it came and undoes the finished steps in reverse order.
  */
 
+const SERVICE_NAMES = [
+  "api", "provision", "db", "queue", "notify",
+  "auth", "cache", "verify", "audit", "health",
+  "config", "storage", "router", "worker", "events",
+];
+
 interface NodeState {
   u: number;
   v: number;
@@ -19,6 +25,8 @@ interface NodeState {
   glow: number;
   x: number;
   y: number;
+  name: string;
+  large: boolean;
 }
 
 interface Run {
@@ -52,6 +60,7 @@ function seeded(seed: number) {
 /** A jittered grid joined to its neighbours: regular enough to read, loose enough to feel grown. */
 function buildGraph(cols: number, rows: number): NodeState[] {
   const rand = seeded(11);
+  const nameRand = seeded(97); // separate seed so positions don't change
   const nodes: NodeState[] = [];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -66,6 +75,8 @@ function buildGraph(cols: number, rows: number): NodeState[] {
         glow: 0,
         x: 0,
         y: 0,
+        name: SERVICE_NAMES[Math.floor(nameRand() * SERVICE_NAMES.length)],
+        large: nameRand() < 0.18,
       });
     }
   }
@@ -141,7 +152,6 @@ export function SagaNetwork({ className }: { className?: string }) {
       for (const node of nodes) {
         const driftX = still ? 0 : Math.sin(now / 2400 + node.phase) * 2.4;
         const driftY = still ? 0 : Math.cos(now / 2900 + node.phase) * 2.4;
-        // Nearer nodes move further against the pointer, which gives the field depth.
         node.x = pad + node.u * (w - pad * 2) + ((0.5 - easedX) * 22 + driftX) * node.depth;
         node.y = pad + node.v * (h - pad * 2) + ((0.5 - easedY) * 14 + driftY) * node.depth;
       }
@@ -171,7 +181,6 @@ export function SagaNetwork({ className }: { className?: string }) {
       return path;
     };
 
-    /** How far along its path a run is currently lit, in hops. */
     const litLength = (run: Run) => {
       if (run.state === "fade") return run.failAt >= 0 ? 0 : run.path.length - 1;
       if (run.state === "back") return run.at - run.t;
@@ -239,7 +248,8 @@ export function SagaNetwork({ className }: { className?: string }) {
       nodes.forEach((node, i) => {
         const appear = still ? 1 : easeOut(clamp01((now - started - 200 - node.u * 900) / 500));
         if (appear <= 0) return;
-        const r = base * (0.8 + 0.3 * node.depth) * appear;
+        const scale = node.large ? 1.28 : 1;
+        const r = base * (0.8 + 0.3 * node.depth) * appear * scale;
         ctx.globalAlpha = appear;
         ctx.fillStyle = ink;
         ctx.beginPath();
@@ -253,7 +263,7 @@ export function SagaNetwork({ className }: { className?: string }) {
           ctx.fill();
         }
         if (node.failed > 0) {
-          // A failed step: hollow, so it reads as "did not complete".
+          // A failed step: hollow with an × so it reads as "did not complete".
           ctx.globalAlpha = 1;
           ctx.fillStyle = floor;
           ctx.strokeStyle = ink;
@@ -261,6 +271,16 @@ export function SagaNetwork({ className }: { className?: string }) {
           ctx.beginPath();
           ctx.arc(node.x, node.y, r * 1.8, 0, Math.PI * 2);
           ctx.fill();
+          ctx.stroke();
+          // × mark
+          const xr = r * 0.65;
+          ctx.beginPath();
+          ctx.moveTo(node.x - xr, node.y - xr);
+          ctx.lineTo(node.x + xr, node.y + xr);
+          ctx.moveTo(node.x + xr, node.y - xr);
+          ctx.lineTo(node.x - xr, node.y + xr);
+          ctx.lineWidth = 1.8;
+          ctx.strokeStyle = ink;
           ctx.stroke();
         }
         if (i === hover) {
@@ -270,6 +290,16 @@ export function SagaNetwork({ className }: { className?: string }) {
           ctx.beginPath();
           ctx.arc(node.x, node.y, r + 6, 0, Math.PI * 2);
           ctx.stroke();
+          // Service name label
+          if (!still) {
+            const fontSize = w < 520 ? 9 : 11;
+            ctx.globalAlpha = 0.88;
+            ctx.fillStyle = ink;
+            ctx.font = `${fontSize}px ui-monospace, 'Cascadia Code', Menlo, monospace`;
+            ctx.textAlign = "center";
+            ctx.fillText(node.name, node.x, node.y + r + fontSize + 5);
+            ctx.textAlign = "left";
+          }
         }
       });
 
@@ -287,11 +317,29 @@ export function SagaNetwork({ className }: { className?: string }) {
       if (!still) {
         for (const run of runs) {
           if (run.state === "fade") continue;
-          const tip = pointOn(run, litLength(run));
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = run.state === "back" ? ink : spot;
+          const litLen = litLength(run);
+          const tip = pointOn(run, litLen);
+          const isForward = run.state === "out";
+
+          // Trail behind forward-moving packets
+          if (isForward && litLen > 0.35) {
+            const trailLen = Math.min(litLen, 0.6);
+            const trailPt = pointOn(run, litLen - trailLen);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = spot;
+            ctx.globalAlpha = run.alpha * 0.22;
+            ctx.beginPath();
+            ctx.moveTo(trailPt.x, trailPt.y);
+            ctx.lineTo(tip.x, tip.y);
+            ctx.stroke();
+          }
+
+          // Tip dot: larger for forward travel, smaller/dimmer for rollback
+          ctx.globalAlpha = run.alpha * (isForward ? 1 : 0.55);
+          ctx.fillStyle = isForward ? spot : ink;
+          const tipR = isForward ? 5 : 3;
           ctx.beginPath();
-          ctx.arc(tip.x, tip.y, 3.6, 0, Math.PI * 2);
+          ctx.arc(tip.x, tip.y, tipR, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -364,7 +412,6 @@ export function SagaNetwork({ className }: { className?: string }) {
       const now = performance.now();
 
       if (reduced.matches) {
-        // No travel: show where the run ended up.
         for (const node of nodes) {
           node.lit = 0;
           node.failed = 0;
@@ -394,8 +441,8 @@ export function SagaNetwork({ className }: { className?: string }) {
       easedX += (pointerX - easedX) * 0.06;
       easedY += (pointerY - easedY) * 0.06;
       place(now);
-      if (now >= nextAmbient && runs.length < (w < 520 ? 2 : 3)) {
-        // Every fifth background run fails, so the undo is part of the picture.
+      // Every fifth background run fails, so the undo is part of the ambient picture.
+      if (now >= nextAmbient && runs.length < (w < 520 ? 2 : 4)) {
         startRun(undefined, ambientCount % 5 === 4);
         ambientCount++;
         nextAmbient = now + 1300 + Math.random() * 700;
@@ -524,10 +571,10 @@ export function SagaNetwork({ className }: { className?: string }) {
         </p>
         <div role="group" aria-label="Demo controls" className="flex shrink-0 gap-x-5">
           <button type="button" onClick={() => start(false)} className="link text-sm font-medium">
-            Start a run
+            <span aria-hidden className="mr-1.5 text-accent">▶</span>Start a run
           </button>
           <button type="button" onClick={() => start(true)} className="link text-sm font-medium">
-            Fail a step
+            <span aria-hidden className="mr-1.5 text-error">✕</span>Fail a step
           </button>
         </div>
       </div>

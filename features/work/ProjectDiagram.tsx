@@ -21,6 +21,7 @@ export function ProjectDiagram({ kind }: { kind: DiagramKind }) {
 
 const frame = "dia block h-auto w-full text-text-primary";
 const quiet = { fontSize: 13, fill: "var(--text-secondary)" };
+const mono = { fontFamily: "ui-monospace, 'Cascadia Code', Menlo, monospace" };
 const at = (ms: number): CSSProperties => ({ animationDelay: `${ms}ms` });
 
 // ─── Saga lanes ──────────────────────────────────────────────────────────────
@@ -32,6 +33,8 @@ const FAIL_STEP = 3;
 const CYCLE = 8; // seconds
 const HOP = 0.45; // seconds between steps
 const pct = (seconds: number) => `${((seconds / CYCLE) * 100).toFixed(2)}%`;
+
+const LANE_NAMES = ["api-gw", "auth", "queue", "db", "notify", "verify", "cleanup"];
 
 /** Keyframes for one loop: steps light in order; the failing run then unwinds in reverse. */
 const SAGA_CSS = [
@@ -48,11 +51,26 @@ const SAGA_CSS = [
 ].join("");
 
 function SagaLanes() {
-  const x = (step: number) => 70 + step * 92;
+  const x = (step: number) => 72 + step * 90;
   const y = (lane: number) => 14 + lane * 42;
   return (
     <svg viewBox="0 0 640 410" className={frame} aria-hidden>
       <style>{SAGA_CSS}</style>
+
+      {/* Service name labels on the left */}
+      {Array.from({ length: LANES }, (_, lane) => (
+        <text
+          key={`label-${lane}`}
+          x="6"
+          y={y(lane) + 18}
+          fontSize="10"
+          fill="var(--text-secondary)"
+          {...mono}
+        >
+          {LANE_NAMES[lane]}
+        </text>
+      ))}
+
       {Array.from({ length: LANES }, (_, lane) => {
         const failing = lane === FAIL_LANE;
         const offset = failing ? -4 : -((lane * 1.9) % CYCLE);
@@ -63,22 +81,22 @@ function SagaLanes() {
               const name = failing ? (step < FAIL_STEP ? `saga-undo-${step}` : null) : `saga-ok-${step}`;
               return (
                 <g key={step}>
-                  <rect x={x(step)} y={y(lane)} width="30" height="30" fill="var(--background-secondary)" stroke="var(--border-strong)" strokeWidth="1.5" />
+                  <rect x={x(step)} y={y(lane)} width="28" height="28" fill="var(--background-secondary)" stroke="var(--border-strong)" strokeWidth="1.5" />
                   {name && (
                     <rect
                       className="saga-step"
                       style={{ animationName: name, animationDelay: `${offset}s` }}
                       x={x(step)}
                       y={y(lane)}
-                      width="30"
-                      height="30"
+                      width="28"
+                      height="28"
                       fill="var(--accent)"
                     />
                   )}
                   {failing && step === FAIL_STEP && (
                     <g className="saga-step" style={{ animationName: "saga-fail", animationDelay: `${offset}s` }} stroke="currentColor" strokeWidth="3" fill="none">
-                      <rect x={x(step)} y={y(lane)} width="30" height="30" />
-                      <path d={`M${x(step) + 9} ${y(lane) + 9}l12 12m0 -12l-12 12`} />
+                      <rect x={x(step)} y={y(lane)} width="28" height="28" />
+                      <path d={`M${x(step) + 8} ${y(lane) + 8}l12 12m0 -12l-12 12`} />
                     </g>
                   )}
                 </g>
@@ -88,10 +106,10 @@ function SagaLanes() {
         );
       })}
 
-      <text x="70" y="336" {...quiet}>Provisioning latency before</text>
-      <rect className="dia-grow" x="70" y="344" width="490" height="12" fill="var(--border-strong)" />
-      <text x="70" y="382" {...quiet}>After</text>
-      <rect className="dia-grow" style={at(250)} x="70" y="390" width="196" height="12" fill="var(--accent)" />
+      <text x="72" y="336" {...quiet}>Provisioning latency before</text>
+      <rect className="dia-grow" x="72" y="344" width="488" height="12" fill="var(--border-strong)" />
+      <text x="72" y="382" {...quiet}>After</text>
+      <rect className="dia-grow" style={at(250)} x="72" y="390" width="195" height="12" fill="var(--accent)" />
     </svg>
   );
 }
@@ -126,12 +144,11 @@ const DIAGRAMS: Record<DiagramKind, () => { svg: ReactNode; caption: string }> =
 
   bars: () => ({
     caption:
-      "The saga pattern, illustrated: each lane is a run working through its steps. One run meets a failing step and undoes its finished steps in reverse. Below, provisioning latency before and after the framework: 60% lower.",
+      "The saga pattern, illustrated: each lane is a run working through its steps. One run meets a failing step (db) and undoes its finished steps in reverse. Below, provisioning latency before and after the framework: 60% lower.",
     svg: <SagaLanes />,
   }),
 
   flame: () => {
-    // [x, width, hot] per row, bottom row first.
     const rows: [number, number, boolean?][][] = [
       [[0, 400]],
       [[0, 250], [254, 146]],
@@ -140,6 +157,14 @@ const DIAGRAMS: Record<DiagramKind, () => { svg: ReactNode; caption: string }> =
       [[122, 70, true], [196, 22]],
       [[122, 34, true]],
     ];
+    // Function names for blocks wide enough to label (screen width > 60px)
+    const blockLabels: Record<string, string> = {
+      "0-0": "runtime.goexit",
+      "1-0": "http.HandleFunc",
+      "2-1": "diagnose",      // hot
+      "3-1": "cpu.sample",    // hot
+      "4-0": "pprof.read",    // hot
+    };
     const inputs: [string, number][] = [["Traces", 255], ["Logs", 315], ["Runtime metrics", 375]];
     return {
       caption:
@@ -147,19 +172,40 @@ const DIAGRAMS: Record<DiagramKind, () => { svg: ReactNode; caption: string }> =
       svg: (
         <svg viewBox="0 0 640 410" className={frame} aria-hidden>
           {rows.flatMap((row, r) =>
-            row.map(([x, width, hot], i) => (
-              <rect
-                key={`${r}-${i}`}
-                className="dia-grow"
-                style={at(r * 110)}
-                x={40 + x * 1.4}
-                y={186 - (r + 1) * 28}
-                width={width * 1.4}
-                height="24"
-                fill={hot ? "var(--accent)" : "currentColor"}
-                opacity={hot ? 1 : 0.16 + r * 0.07}
-              />
-            ))
+            row.map(([x, width, hot], i) => {
+              const sx = 40 + x * 1.4;
+              const sw = width * 1.4;
+              const sy = 186 - (r + 1) * 28;
+              const label = blockLabels[`${r}-${i}`];
+              return (
+                <g key={`${r}-${i}`}>
+                  <rect
+                    className="dia-grow"
+                    style={at(r * 110)}
+                    x={sx}
+                    y={sy}
+                    width={sw}
+                    height="24"
+                    fill={hot ? "var(--accent)" : "currentColor"}
+                    opacity={hot ? 1 : 0.16 + r * 0.07}
+                  />
+                  {label && sw > 72 && (
+                    <text
+                      className="dia-grow"
+                      style={at(r * 110 + 60)}
+                      x={sx + 6}
+                      y={sy + 15}
+                      fontSize="10"
+                      fill={hot ? "var(--accent-foreground)" : "var(--background)"}
+                      opacity={hot ? 1 : Math.min(1, 0.3 + r * 0.15)}
+                      {...mono}
+                    >
+                      {label}
+                    </text>
+                  )}
+                </g>
+              );
+            })
           )}
 
           {inputs.map(([name, y], i) => (
@@ -193,6 +239,14 @@ const DIAGRAMS: Record<DiagramKind, () => { svg: ReactNode; caption: string }> =
     caption: "IMS and WMS exchange inventory events through Kafka in real time.",
     svg: (
       <svg viewBox="0 0 640 320" className={frame} aria-hidden>
+        {/* Event type labels */}
+        <text x="320" y="116" textAnchor="middle" fontSize="10" fill="var(--accent-foreground)" {...mono}>
+          inventory.update
+        </text>
+        <text x="320" y="210" textAnchor="middle" fontSize="10" fill="var(--accent-foreground)" {...mono}>
+          order.reserve
+        </text>
+
         {[130, 190].map((y, lane) => {
           const forward = lane === 0;
           return (
@@ -217,11 +271,14 @@ const DIAGRAMS: Record<DiagramKind, () => { svg: ReactNode; caption: string }> =
           );
         })}
         <rect x="11" y="90" width="149" height="140" fill="var(--background-secondary)" stroke="currentColor" strokeWidth="2" />
-        <text x="85" y="169" textAnchor="middle" fontSize="26" fontWeight="700" fill="currentColor">IMS</text>
+        <text x="85" y="161" textAnchor="middle" fontSize="22" fontWeight="700" fill="currentColor">IMS</text>
+        <text x="85" y="181" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">inventory mgmt</text>
         <rect x="480" y="90" width="149" height="140" fill="var(--background-secondary)" stroke="currentColor" strokeWidth="2" />
-        <text x="555" y="169" textAnchor="middle" fontSize="26" fontWeight="700" fill="currentColor">WMS</text>
+        <text x="555" y="161" textAnchor="middle" fontSize="22" fontWeight="700" fill="currentColor">WMS</text>
+        <text x="555" y="181" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">warehouse mgmt</text>
         <rect x="250" y="50" width="140" height="220" fill="var(--accent)" />
-        <text x="320" y="168" textAnchor="middle" fontSize="22" fontWeight="700" fill="var(--accent-foreground)">Kafka</text>
+        <text x="320" y="155" textAnchor="middle" fontSize="20" fontWeight="700" fill="var(--accent-foreground)">Kafka</text>
+        <text x="320" y="175" textAnchor="middle" fontSize="10" fill="var(--accent-foreground)" opacity="0.8">3 partitions</text>
       </svg>
     ),
   }),
@@ -240,6 +297,8 @@ const DIAGRAMS: Record<DiagramKind, () => { svg: ReactNode; caption: string }> =
         <text x="20" y="222" {...quiet}>0</text>
         <text x="140" y="222" textAnchor="middle" fontSize="15" fontWeight="700" fill="currentColor">200 ms</text>
         <text x="620" y="222" textAnchor="end" {...quiet}>1 s</text>
+        <text x="80" y="150" textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--accent-foreground)">page</text>
+        <text x="80" y="166" textAnchor="middle" fontSize="10" fill="var(--accent-foreground)" opacity="0.85">response</text>
       </svg>
     ),
   }),
